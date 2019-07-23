@@ -1,14 +1,14 @@
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Date;
 import java.util.Properties;
 
-public class GetPropertyValues {
-    String result = "";
-    InputStream inputStream;
+class GetPropertyValues {
+    private InputStream inputStream;
+    int numberOfPlayers;
+    int round;
 
-    public String getProperyValues() throws IOException {
+    void getPropertyValues() throws IOException {
         try {
             Properties properties = new Properties();
             String propertiesFileName = "config.properties";
@@ -21,12 +21,15 @@ public class GetPropertyValues {
                 throw new FileNotFoundException("property file ' " + propertiesFileName + " ' not found");
             }
 
-             
+            //get the property value
+            numberOfPlayers = Integer.parseInt(properties.getProperty("player"));
+            round = Integer.parseInt(properties.getProperty("round"));
         } catch (Exception e) {
             System.out.println("Exception: " + e);
         } finally {
-            inputStream.close();
+            if (inputStream != null) {
+                inputStream.close();
+            }
         }
-        return result;
     }
 }
