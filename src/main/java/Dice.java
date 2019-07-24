@@ -1,11 +1,11 @@
-import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
+import java.util.stream.Stream;
 
-public class Dice {
+class Dice {
     private static final int NUMBER_OF_SIDES = 6;
 
-    Random random = new Random();
+    private Random random = new Random();
 
     List<Integer> roll(){
         int value1 = random.nextInt(NUMBER_OF_SIDES) + 1;
@@ -14,6 +14,7 @@ public class Dice {
         int value4 = random.nextInt(NUMBER_OF_SIDES) + 1;
         int value5 = random.nextInt(NUMBER_OF_SIDES) + 1;
 
-        return Arrays.asList(value1, value2, value3, value4, value5);
+        return (List<Integer>) Stream.of(value1, value2, value3, value4, value5)
+                .sorted();
     }
 }
