@@ -1,18 +1,14 @@
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 class Player {
     private int currentScore;
     private int number;
-    private Set<List<Integer>> thrownDice = new HashSet<>();
+    private Map<String, List<Integer>> tryOut = new HashMap<>();
 
-    Set<List<Integer>> getThrownDice() {
-        return thrownDice;
-    }
-
-    void setThrownDice(List<Integer> list) {
-        this.thrownDice.add(list);
+    Map<String, List<Integer>> getTryOut() {
+        return tryOut;
     }
 
     Player(int number) {

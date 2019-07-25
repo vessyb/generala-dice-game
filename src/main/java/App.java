@@ -65,6 +65,7 @@ public class App {
             List<Integer> temporaryList = new ArrayList<>();
             List<Integer> alternativeList = new ArrayList<>();
             List<Integer> altList = new ArrayList<>();
+            String joinedList, jl1, jl2;
 
             // a diceCombinationOccurrences with every integer and the frequency of its occurrence
             Map<Integer, Long> diceCombinationOccurrences = Arrays.stream(diceRolls.toArray())
@@ -77,13 +78,14 @@ public class App {
                 case 5:
                     Integer straightValue;
                     List<Integer> straightNums = new ArrayList<>(diceCombinationOccurrences.keySet());
-                    if (isConsecutive(straightNums) && !player.getThrownDice().contains(straightNums)) {
+                    joinedList = straightNums.stream().map(String::valueOf).collect(Collectors.joining());
+                    if (isConsecutive(straightNums) && !player.getTryOut().containsKey(joinedList)) {
                         straightValue = straightNums.stream()
                                 .reduce(0, Integer::sum);
                         player.setCurrentScore(player.getCurrentScore() + straightValue + Combination.STRAIGHT.getCONSTANT());
                         combo = Combination.STRAIGHT.toString();
                         temporaryList.addAll(straightNums);
-                        player.setThrownDice(temporaryList);
+                        player.getTryOut().put(joinedList, temporaryList);
                     } else {
                         combo = Combination.MISS.toString();
                     }
@@ -98,10 +100,12 @@ public class App {
                     temporaryList.add(pairValue);
                     temporaryList.add(pairValue);
 
-                    if (!player.getThrownDice().contains(temporaryList)) {
+                    joinedList = temporaryList.stream().map(String::valueOf).collect(Collectors.joining());
+
+                    if (!player.getTryOut().containsKey(joinedList)) {
                         player.setCurrentScore(player.getCurrentScore() + pairValue * 2 + Combination.PAIR.getCONSTANT());
                         combo = Combination.PAIR.toString();
-                        player.setThrownDice(temporaryList);
+                        player.getTryOut().put(joinedList, temporaryList);
                     } else {
                         combo = Combination.MISS.toString();
                     }
@@ -118,17 +122,20 @@ public class App {
                         temporaryList.add(tripleValue);
                         temporaryList.add(tripleValue);
 
+                        joinedList = temporaryList.stream().map(String::valueOf).collect(Collectors.joining());
+
                         alternativeList.add(tripleValue);
                         alternativeList.add(tripleValue);
 
-                        if (!player.getThrownDice().contains(temporaryList)) {
+                        jl1 = alternativeList.stream().map(String::valueOf).collect(Collectors.joining());
+                        if (!player.getTryOut().containsKey(joinedList)) {
                             player.setCurrentScore(player.getCurrentScore() + tripleValue * 3 + Combination.TRIPLE.getCONSTANT());
                             combo = Combination.TRIPLE.toString();
-                            player.setThrownDice(temporaryList);
-                        } else if (!player.getThrownDice().contains(alternativeList)) {
+                            player.getTryOut().put(joinedList, temporaryList);
+                        } else if (!player.getTryOut().containsKey(jl1)) {
                             player.setCurrentScore(player.getCurrentScore() + tripleValue + Combination.PAIR.getCONSTANT());
                             combo = Combination.PAIR.toString();
-                            player.setThrownDice(alternativeList);
+                            player.getTryOut().put(jl1, alternativeList);
                         } else {
                             combo = Combination.MISS.toString();
                         }
@@ -142,6 +149,8 @@ public class App {
                         temporaryList = temporaryList.stream()
                                 .sorted()
                                 .collect(Collectors.toList());
+
+                        joinedList = temporaryList.stream().map(String::valueOf).collect(Collectors.joining());
 
                         Integer max = diceCombinationOccurrences.entrySet()
                                 .stream()
@@ -162,10 +171,15 @@ public class App {
                         alternativeList.add(max);
                         alternativeList.add(max);
 
+                        jl1 = alternativeList.stream().map(String::valueOf).collect(Collectors.joining());
+
                         altList.add(min);
                         altList.add(min);
 
-                        if (!player.getThrownDice().contains(temporaryList)) {
+                        jl2 = altList.stream().map(String::valueOf).collect(Collectors.joining());
+
+                        if (!player.getTryOut().containsKey(joinedList)//!player.getThrownDice().contains(temporaryList)
+                        ) {
                             pairValue = diceCombinationOccurrences.entrySet()
                                     .stream()
                                     .filter(e -> e.getValue() == 2)
@@ -173,19 +187,19 @@ public class App {
                                     .reduce(0, Integer::sum);
                             player.setCurrentScore(player.getCurrentScore() + pairValue * 2 + Combination.DOUBLE_PAIR.getCONSTANT());
                             combo = Combination.DOUBLE_PAIR.toString();
-                            player.setThrownDice(temporaryList);
-                        } else if (!player.getThrownDice().contains(alternativeList)) {
+                            player.getTryOut().put(joinedList, temporaryList);
+                        } else if (!player.getTryOut().containsKey(jl1)) {
                             pairValue = alternativeList.stream()
                                     .reduce(0, Integer::sum);
                             player.setCurrentScore(player.getCurrentScore() + pairValue + Combination.PAIR.getCONSTANT());
                             combo = Combination.PAIR.toString();
-                            player.setThrownDice(alternativeList);
-                        } else if (!player.getThrownDice().contains(altList)) {
+                            player.getTryOut().put(jl1, alternativeList);
+                        } else if (!player.getTryOut().containsKey(jl2)) {
                             pairValue = altList.stream()
                                     .reduce(0, Integer::sum);
                             player.setCurrentScore(player.getCurrentScore() + pairValue + Combination.PAIR.getCONSTANT());
                             combo = Combination.PAIR.toString();
-                            player.setThrownDice(altList);
+                            player.getTryOut().put(jl2, altList);
                         } else {
                             combo = Combination.MISS.toString();
                         }
@@ -215,25 +229,32 @@ public class App {
                         alternativeList.add(tripleValue);
                         alternativeList.add(tripleValue);
 
+                        jl1 = alternativeList.stream().map(String::valueOf).collect(Collectors.joining());
+
                         altList.add(pairValue);
                         altList.add(pairValue);
+
+                        jl2 = altList.stream().map(String::valueOf).collect(Collectors.joining());
 
                         temporaryList = temporaryList.stream()
                                 .sorted()
                                 .collect(Collectors.toList());
 
-                        if (!player.getThrownDice().contains(temporaryList)) {
+                        joinedList = temporaryList.stream().map(String::valueOf).collect(Collectors.joining());
+
+                        if (!player.getTryOut().containsKey(joinedList)//!player.getThrownDice().contains(temporaryList)
+                        ) {
                             player.setCurrentScore(player.getCurrentScore() + (pairValue * 2) + (tripleValue * 3) + Combination.FULL_HOUSE.getCONSTANT());
                             combo = Combination.FULL_HOUSE.toString();
-                            player.setThrownDice(temporaryList);
-                        } else if (!player.getThrownDice().contains(alternativeList)) {
+                            player.getTryOut().put(joinedList, temporaryList);
+                        } else if (!player.getTryOut().containsKey(jl1)) {
                             player.setCurrentScore(player.getCurrentScore() + tripleValue * 3 + Combination.TRIPLE.getCONSTANT());
                             combo = Combination.TRIPLE.toString();
-                            player.setThrownDice(alternativeList);
-                        } else if (!player.getThrownDice().contains(altList)) {
+                            player.getTryOut().put(jl1, alternativeList);
+                        } else if (!player.getTryOut().containsKey(jl2)) {
                             player.setCurrentScore(player.getCurrentScore() + pairValue * 2 + Combination.PAIR.getCONSTANT());
                             combo = Combination.PAIR.toString();
-                            player.setThrownDice(altList);
+                            player.getTryOut().put(jl2, altList);
                         } else {
                             combo = Combination.MISS.toString();
                         }
@@ -249,25 +270,31 @@ public class App {
                         temporaryList.add(valueOfFourOfAKind);
                         temporaryList.add(valueOfFourOfAKind);
 
+                        joinedList = temporaryList.stream().map(String::valueOf).collect(Collectors.joining());
+
                         alternativeList.add(valueOfFourOfAKind);
                         alternativeList.add(valueOfFourOfAKind);
                         alternativeList.add(valueOfFourOfAKind);
 
+                        jl1 = alternativeList.stream().map(String::valueOf).collect(Collectors.joining());
+
                         altList.add(valueOfFourOfAKind);
                         altList.add(valueOfFourOfAKind);
 
-                        if (!player.getThrownDice().contains(temporaryList)) {
+                        jl2 = altList.stream().map(String::valueOf).collect(Collectors.joining());
+
+                        if (!player.getTryOut().containsKey(joinedList)) {
                             player.setCurrentScore(player.getCurrentScore() + valueOfFourOfAKind * 4 + Combination.FOUR_OF_A_KIND.getCONSTANT());
                             combo = Combination.FOUR_OF_A_KIND.toString();
-                            player.setThrownDice(temporaryList);
-                        } else if (!player.getThrownDice().contains(alternativeList)) {
+                            player.getTryOut().put(joinedList, temporaryList);
+                        } else if (!player.getTryOut().containsKey(jl1)) {
                             player.setCurrentScore(player.getCurrentScore() + valueOfFourOfAKind * 3 + Combination.TRIPLE.getCONSTANT());
                             combo = Combination.TRIPLE.toString();
-                            player.setThrownDice(alternativeList);
-                        } else if (!player.getThrownDice().contains(altList)) {
+                            player.getTryOut().put(jl1, alternativeList);
+                        } else if (!player.getTryOut().containsKey(jl2)) {
                             player.setCurrentScore(player.getCurrentScore() + valueOfFourOfAKind * 2 + Combination.PAIR.getCONSTANT());
                             combo = Combination.PAIR.toString();
-                            player.setThrownDice(altList);
+                            player.getTryOut().put(jl2, altList);
                         } else {
                             combo = Combination.MISS.toString();
                         }
