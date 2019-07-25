@@ -1,5 +1,6 @@
 import java.util.List;
 import java.util.Random;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 class Dice {
@@ -14,7 +15,8 @@ class Dice {
         int value4 = random.nextInt(NUMBER_OF_SIDES) + 1;
         int value5 = random.nextInt(NUMBER_OF_SIDES) + 1;
 
-        return (List<Integer>) Stream.of(value1, value2, value3, value4, value5)
-                .sorted();
+        return Stream.of(value1, value2, value3, value4, value5)
+                .sorted()
+                .collect(Collectors.toList());
     }
 }

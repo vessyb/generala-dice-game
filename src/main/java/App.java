@@ -1,4 +1,6 @@
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -7,30 +9,55 @@ import java.util.stream.Collectors;
  */
 
 public class App {
-    private GetPropertyValues propertyValues = new GetPropertyValues();
+    private static int round;
+    private static int numberOfPlayers;
+    private Player player;
+    private Set<Player> players = new HashSet<>();
 
-    public static void main(final String[] args) throws IOException {
+    public static void main(final String[] args) {
         App app = new App();
+
+        try (InputStream input = new FileInputStream("C:\\GeneralaDiceGame\\src\\main\\resources\\config.properties")) {
+            Properties prop = new Properties();
+            prop.load(input);
+
+            round = Integer.parseInt(prop.getProperty("round"));
+            numberOfPlayers = Integer.parseInt(prop.getProperty("player"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         app.startNewGame();
     }
 
     private void startNewGame() {
-        for (int i = 1; i <= propertyValues.round; i++) {
+        for (int i = 1; i <= App.round; i++) {
             System.out.println(">>> round: " + i + ":");
             playOneRound();
         }
+        players.stream()
+                .sorted(Comparator.comparing(Player::getCurrentScore)
+                        .reversed())
+                .forEach(e -> System.out.println("player " + player.getNumber() + "final score: " + player.getCurrentScore()));
+    }
+
+    private boolean isConsecutive(List<Integer> list) {
+        int n = list.size();
+        return list.stream()
+                .mapToInt(Integer::intValue)
+                .sum() == n * (n + 1) / 2;
     }
 
     private void playOneRound() {
-        for (int i = 0; i < propertyValues.numberOfPlayers; i++) {
-            int sum = 0;
+        for (int i = 1; i <= App.numberOfPlayers; i++) {
+            /*int sum = 0;*/
             String combo = "";
-            Player player = new Player(i);
+            player = new Player(i);
             final Dice dice = new Dice();
             List<Integer> diceRolls = dice.roll();
             List<Integer> temporaryList = new ArrayList<>();
             List<Integer> alternativeList = new ArrayList<>();
             List<Integer> altList = new ArrayList<>();
+            players.add(player);
 
             // a diceCombinationOccurrences with every integer and the frequency of its occurrence
             Map<Integer, Long> diceCombinationOccurrences = Arrays.stream(diceRolls.toArray())
@@ -39,14 +66,19 @@ public class App {
             int var = diceCombinationOccurrences.size();
             switch (var) {
                 case 5:
-                    Integer straightValue = diceCombinationOccurrences.keySet()
-                            .stream()
-                            .reduce(0, Integer::sum);
-
-                    sum = straightValue + Combination.STRAIGHT.getCONSTANT();
-                    combo = Combination.STRAIGHT.toString();
-                    temporaryList.addAll(diceRolls);
-                    player.thrownDice.add(temporaryList);
+                    Integer straightValue;
+                    List<Integer> straightNums = new ArrayList<>(diceCombinationOccurrences.keySet());
+                    if (isConsecutive(straightNums) && !player.getThrownDice().contains(straightNums)) {
+                        straightValue = straightNums.stream()
+                                .reduce(0, Integer::sum);
+                        player.setSum(straightValue + Combination.STRAIGHT.getCONSTANT());
+                        combo = Combination.STRAIGHT.toString();
+                        temporaryList.addAll(straightNums);
+                        player.setThrownDice(temporaryList);
+                    } else {
+                        player.setSum(0);
+                        combo = Combination.MISS.toString();
+                    }
                     break;
                 case 4:
                     Integer pairValue = diceCombinationOccurrences.entrySet()
@@ -55,14 +87,20 @@ public class App {
                             .map(Map.Entry::getKey)
                             .reduce(0, Integer::sum);
 
-                    sum = pairValue * 2 + Combination.PAIR.getCONSTANT();
-                    combo = Combination.PAIR.toString();
                     temporaryList.add(pairValue);
                     temporaryList.add(pairValue);
-                    player.thrownDice.add(temporaryList);
+
+                    if (!player.getThrownDice().contains(temporaryList)) {
+                        player.setSum(pairValue * 2 + Combination.PAIR.getCONSTANT());
+                        combo = Combination.PAIR.toString();
+                        player.setThrownDice(temporaryList);
+                    } else {
+                        player.setSum(0);
+                        combo = Combination.MISS.toString();
+                    }
                     break;
                 case 3:
-                    if (diceCombinationOccurrences.containsValue(3)) {
+                    if (diceCombinationOccurrences.containsValue(Long.valueOf("3"))) {
                         Integer tripleValue = diceCombinationOccurrences.entrySet()
                                 .stream()
                                 .filter(e -> e.getValue() == 3)
@@ -76,26 +114,24 @@ public class App {
                         alternativeList.add(tripleValue);
                         alternativeList.add(tripleValue);
 
-                        if (!player.thrownDice.contains(temporaryList)) {
-                            sum = tripleValue * 3 + Combination.TRIPLE.getCONSTANT();
+                        if (!player.getThrownDice().contains(temporaryList)) {
+                            player.setSum(tripleValue * 3 + Combination.TRIPLE.getCONSTANT());
                             combo = Combination.TRIPLE.toString();
-                            player.thrownDice.add(temporaryList);
-                        } else if (!player.thrownDice.contains(alternativeList)) {
-                            sum = tripleValue * 2 + Combination.PAIR.getCONSTANT();
+                            player.setThrownDice(temporaryList);
+                        } else if (!player.getThrownDice().contains(alternativeList)) {
+                            player.setSum(tripleValue + Combination.PAIR.getCONSTANT());
                             combo = Combination.PAIR.toString();
-                            player.thrownDice.add(alternativeList);
+                            player.setThrownDice(alternativeList);
                         } else {
-                            sum = 0;
+                            player.setSum(0);
+                            combo = Combination.MISS.toString();
                         }
                     } else {
-                        //gets distinct keys which have frequency of 2 and adds them twice to the list, after that sorts them
-                        for (int j = 0; j < 2; j++) {
-                            temporaryList = diceCombinationOccurrences.entrySet()
-                                    .stream()
-                                    .filter(e -> e.getValue() == 2)
-                                    .map(Map.Entry::getKey)
-                                    .collect(Collectors.toList());
-                        }
+                        temporaryList = diceCombinationOccurrences.entrySet()
+                                .stream()
+                                .filter(e -> e.getValue() == 2)
+                                .map(Map.Entry::getKey)
+                                .collect(Collectors.toList());
 
                         temporaryList = temporaryList.stream()
                                 .sorted()
@@ -107,7 +143,7 @@ public class App {
                                 .map(Map.Entry::getKey)
                                 .mapToInt(v -> v)
                                 .max()
-                                .orElseThrow(NoSuchElementException::new);
+                                .orElse(0);
 
                         Integer min = diceCombinationOccurrences.entrySet()
                                 .stream()
@@ -115,7 +151,7 @@ public class App {
                                 .map(Map.Entry::getKey)
                                 .mapToInt(v -> v)
                                 .min()
-                                .orElseThrow(NoSuchElementException::new);
+                                .orElse(0);
 
                         alternativeList.add(max);
                         alternativeList.add(max);
@@ -123,29 +159,35 @@ public class App {
                         altList.add(min);
                         altList.add(min);
 
-                        if (!player.thrownDice.contains(temporaryList)) {
-                            pairValue = temporaryList.stream()
+                        if (!player.getThrownDice().contains(temporaryList)) {
+                            pairValue = diceCombinationOccurrences.entrySet()
+                                    .stream()
+                                    .filter(e -> e.getValue() == 2)
+                                    .map(Map.Entry::getKey)
                                     .reduce(0, Integer::sum);
-                            sum = pairValue * 2 + Combination.DOUBLE_PAIR.getCONSTANT();
+                            player.setSum(pairValue * 2 + Combination.DOUBLE_PAIR.getCONSTANT());
                             combo = Combination.DOUBLE_PAIR.toString();
-                            player.thrownDice.add(temporaryList);
-                        } else if (!player.thrownDice.contains(alternativeList)) {
+                            player.setThrownDice(temporaryList);
+                        } else if (!player.getThrownDice().contains(alternativeList)) {
                             pairValue = alternativeList.stream()
                                     .reduce(0, Integer::sum);
-                            sum = pairValue + Combination.PAIR.getCONSTANT();
+                            player.setSum(pairValue + Combination.PAIR.getCONSTANT());
                             combo = Combination.PAIR.toString();
-                        } else if (!player.thrownDice.contains(altList)) {
+                            player.setThrownDice(alternativeList);
+                        } else if (!player.getThrownDice().contains(altList)) {
                             pairValue = altList.stream()
                                     .reduce(0, Integer::sum);
-                            sum = pairValue + Combination.PAIR.getCONSTANT();
+                            player.setSum(pairValue + Combination.PAIR.getCONSTANT());
                             combo = Combination.PAIR.toString();
+                            player.setThrownDice(altList);
                         } else {
-                            sum = 0;
+                            player.setSum(0);
+                            combo = Combination.MISS.toString();
                         }
                     }
                     break;
                 case 2:
-                    if (diceCombinationOccurrences.containsValue(3)) {
+                    if (diceCombinationOccurrences.containsValue(Long.valueOf("3"))) {
                         Integer tripleValue = diceCombinationOccurrences.entrySet()
                                 .stream()
                                 .filter(e -> e.getValue() == 3)
@@ -175,20 +217,21 @@ public class App {
                                 .sorted()
                                 .collect(Collectors.toList());
 
-                        if (!player.thrownDice.contains(temporaryList)) {
-                            sum = (pairValue * 2) + (tripleValue * 3) + Combination.FULL_HOUSE.getCONSTANT();
+                        if (!player.getThrownDice().contains(temporaryList)) {
+                            player.setSum((pairValue * 2) + (tripleValue * 3) + Combination.FULL_HOUSE.getCONSTANT());
                             combo = Combination.FULL_HOUSE.toString();
-                            player.thrownDice.add(temporaryList);
-                        } else if (!player.thrownDice.contains(alternativeList)) {
-                            sum = tripleValue * 3 + Combination.TRIPLE.getCONSTANT();
+                            player.setThrownDice(temporaryList);
+                        } else if (!player.getThrownDice().contains(alternativeList)) {
+                            player.setSum(tripleValue * 3 + Combination.TRIPLE.getCONSTANT());
                             combo = Combination.TRIPLE.toString();
-                            player.thrownDice.add(alternativeList);
-                        } else if (!player.thrownDice.contains(altList)) {
-                            sum = pairValue * 2 + Combination.PAIR.getCONSTANT();
-                            combo = Combination.TRIPLE.toString();
-                            player.thrownDice.add(altList);
+                            player.setThrownDice(alternativeList);
+                        } else if (!player.getThrownDice().contains(altList)) {
+                            player.setSum(pairValue * 2 + Combination.PAIR.getCONSTANT());
+                            combo = Combination.PAIR.toString();
+                            player.setThrownDice(altList);
                         } else {
-                            sum = 0;
+                            player.setSum(0);
+                            combo = Combination.MISS.toString();
                         }
                     } else {
                         Integer valueOfFourOfAKind = diceCombinationOccurrences.entrySet()
@@ -209,20 +252,21 @@ public class App {
                         altList.add(valueOfFourOfAKind);
                         altList.add(valueOfFourOfAKind);
 
-                        if (!player.thrownDice.contains(temporaryList)) {
-                            sum = valueOfFourOfAKind * 4 + Combination.FOUR_OF_A_KIND.getCONSTANT();
+                        if (!player.getThrownDice().contains(temporaryList)) {
+                            player.setSum(valueOfFourOfAKind * 4 + Combination.FOUR_OF_A_KIND.getCONSTANT());
                             combo = Combination.FOUR_OF_A_KIND.toString();
-                            player.thrownDice.add(temporaryList);
-                        } else if (!player.thrownDice.contains(alternativeList)) {
-                            sum = valueOfFourOfAKind * 3 + Combination.TRIPLE.getCONSTANT();
+                            player.setThrownDice(temporaryList);
+                        } else if (!player.getThrownDice().contains(alternativeList)) {
+                            player.setSum(valueOfFourOfAKind * 3 + Combination.TRIPLE.getCONSTANT());
                             combo = Combination.TRIPLE.toString();
-                            player.thrownDice.add(alternativeList);
-                        } else if (!player.thrownDice.contains(altList)) {
-                            sum = valueOfFourOfAKind * 2 + Combination.PAIR.getCONSTANT();
+                            player.setThrownDice(alternativeList);
+                        } else if (!player.getThrownDice().contains(altList)) {
+                            player.setSum(valueOfFourOfAKind * 2 + Combination.PAIR.getCONSTANT());
                             combo = Combination.PAIR.toString();
-                            player.thrownDice.add(altList);
+                            player.setThrownDice(altList);
                         } else {
-                            sum = 0;
+                            player.setSum(0);
+                            combo = Combination.MISS.toString();
                         }
                     }
                     break;
@@ -233,18 +277,34 @@ public class App {
                             .map(Map.Entry::getKey)
                             .reduce(0, Integer::sum);
 
-                    sum = valueOfGenerala * 5 + Combination.GENERALA.getCONSTANT();
+                    player.setSum(valueOfGenerala * 5 + Combination.GENERALA.getCONSTANT());
                     combo = Combination.GENERALA.toString();
+
+                    System.out.println("current score: " + player.getCurrentScore());
+                    player.setSum(player.getSum() * 2);
+                    player.setCurrentScore(player.getSum());
+                    System.out.println("dice roll: " + diceRolls + " -> " + combo);
+                    System.out.println("new score: " + player.getCurrentScore());
+
+                    players.stream()
+                            .sorted(Comparator.comparing(Player::getCurrentScore)
+                                    .reversed())
+                            .forEach(e -> System.out.println("player " + player.getNumber() + "final score: " + player.getCurrentScore()));
+
+                    System.exit(0);
                     break;
             }
-            System.out.println("current score: " + player.currentScore);
-            player.currentScore += sum;
+            /*player.setSum(player.getSum() * 2);*/
+            player.setCurrentScore(player.getSum());
+            System.out.println("current score: " + player.getCurrentScore());
             System.out.println("dice roll: " + diceRolls + " -> " + combo);
-            System.out.println("new score: " + player.currentScore);
+            //todo: fix new score = it should get updated
+            System.out.println("new score: " + player.getCurrentScore());
 
             temporaryList.clear();
             alternativeList.clear();
             altList.clear();
         }
     }
+
 }

@@ -1,4 +1,5 @@
 public enum Combination {
+    MISS(0),
     PAIR (10),
     DOUBLE_PAIR (15),
     TRIPLE (20),
