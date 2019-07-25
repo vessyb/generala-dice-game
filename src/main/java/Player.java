@@ -5,12 +5,7 @@ import java.util.Set;
 class Player {
     private int currentScore;
     private int number;
-    private int sum;
     private Set<List<Integer>> thrownDice = new HashSet<>();
-
-    int getSum() {
-        return sum;
-    }
 
     Set<List<Integer>> getThrownDice() {
         return thrownDice;
@@ -20,13 +15,8 @@ class Player {
         this.thrownDice.add(list);
     }
 
-    void setSum(int sum) {
-        this.sum = sum;
-    }
-
     Player(int number) {
         this.number = number;
-        System.out.println("> player " + number + ":");
     }
 
     void setCurrentScore(int currentScore) {
@@ -41,5 +31,9 @@ class Player {
         return number;
     }
 
+    @Override
+    public String toString() {
+        return "> player " + number + ":";
+    }
 
 }
