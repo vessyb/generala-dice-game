@@ -46,17 +46,13 @@ public class App {
             System.out.println(">>> round: " + i + ":");
             playOneRound();
         }
-
-        players.sort(Comparator.comparing(Player::getCurrentScore, Comparator.reverseOrder()));
-        players.forEach(e -> System.out.println("player " + e.getNumber() + " final score: " + e.getCurrentScore()));
-
+        printFinalStats();
     }
 
     private boolean isConsecutive(List<Integer> list) {
         int n = list.size();
-        return list.stream()
-                .mapToInt(Integer::intValue)
-                .sum() == n * (n + 1) / 2;
+        return list.get(n - 1) - list.get(0) == n - 1;
+
     }
 
     private void playOneRound() {
@@ -78,15 +74,20 @@ public class App {
             switch (var) {
                 case 5:
                     Integer straightValue;
-                    List<Integer> straightNums = new ArrayList<>(diceCombinationOccurrences.keySet());
-                    joinedList = straightNums.stream().map(String::valueOf).collect(Collectors.joining());
-                    if (isConsecutive(straightNums) && !player.getTryOut().containsKey(joinedList)) {
-                        straightValue = straightNums.stream()
+                    /*List<Integer> straightNums = new ArrayList<>(diceCombinationOccurrences.keySet());*/
+                    temporaryList = new ArrayList<>(diceCombinationOccurrences.keySet());
+
+                    joinedList = getJoinedList(temporaryList);
+
+                    if (isConsecutive(temporaryList) && !player.getTryOut().containsKey(joinedList)) {
+                        straightValue = temporaryList.stream()
                                 .reduce(0, Integer::sum);
-                        player.setCurrentScore(player.getCurrentScore() + straightValue + Combination.STRAIGHT.getCONSTANT());
+                        player.setCurrentScore(player.getCurrentScore() + straightValue
+                                + Combination.STRAIGHT.getCONSTANT());
                         combo = Combination.STRAIGHT.toString();
-                        temporaryList.addAll(straightNums);
-                        player.getTryOut().put(joinedList, temporaryList);
+                        /*temporaryList.addAll(temporaryList);*/
+                        player.getTryOut()
+                                .put(joinedList, temporaryList);
                     } else {
                         combo = Combination.MISS.toString();
                     }
@@ -98,15 +99,16 @@ public class App {
                             .map(Map.Entry::getKey)
                             .reduce(0, Integer::sum);
 
-                    temporaryList.add(pairValue);
-                    temporaryList.add(pairValue);
+                    fillPairList(temporaryList, pairValue);
 
-                    joinedList = temporaryList.stream().map(String::valueOf).collect(Collectors.joining());
+                    joinedList = getJoinedList(temporaryList);
 
                     if (!player.getTryOut().containsKey(joinedList)) {
-                        player.setCurrentScore(player.getCurrentScore() + pairValue * 2 + Combination.PAIR.getCONSTANT());
+                        player.setCurrentScore(player.getCurrentScore() + pairValue * 2
+                                + Combination.PAIR.getCONSTANT());
                         combo = Combination.PAIR.toString();
-                        player.getTryOut().put(joinedList, temporaryList);
+                        player.getTryOut()
+                                .put(joinedList, temporaryList);
                     } else {
                         combo = Combination.MISS.toString();
                     }
@@ -119,23 +121,25 @@ public class App {
                                 .map(Map.Entry::getKey)
                                 .reduce(0, Integer::sum);
 
-                        temporaryList.add(tripleValue);
-                        temporaryList.add(tripleValue);
-                        temporaryList.add(tripleValue);
-                        alternativeList.add(tripleValue);
-                        alternativeList.add(tripleValue);
 
-                        joinedList = temporaryList.stream().map(String::valueOf).collect(Collectors.joining());
-                        jl1 = alternativeList.stream().map(String::valueOf).collect(Collectors.joining());
+                        fillTripleList(temporaryList, tripleValue);
+                        fillPairList(alternativeList, tripleValue);
+
+                        joinedList = getJoinedList(temporaryList);
+                        jl1 = getJoinedList(alternativeList);
 
                         if (!player.getTryOut().containsKey(joinedList)) {
-                            player.setCurrentScore(player.getCurrentScore() + tripleValue * 3 + Combination.TRIPLE.getCONSTANT());
+                            player.setCurrentScore(player.getCurrentScore() + tripleValue * 3
+                                    + Combination.TRIPLE.getCONSTANT());
                             combo = Combination.TRIPLE.toString();
-                            player.getTryOut().put(joinedList, temporaryList);
+                            player.getTryOut()
+                                    .put(joinedList, temporaryList);
                         } else if (!player.getTryOut().containsKey(jl1)) {
-                            player.setCurrentScore(player.getCurrentScore() + tripleValue + Combination.PAIR.getCONSTANT());
+                            player.setCurrentScore(player.getCurrentScore() + tripleValue
+                                    + Combination.PAIR.getCONSTANT());
                             combo = Combination.PAIR.toString();
-                            player.getTryOut().put(jl1, alternativeList);
+                            player.getTryOut()
+                                    .put(jl1, alternativeList);
                         } else {
                             combo = Combination.MISS.toString();
                         }
@@ -166,15 +170,12 @@ public class App {
                                 .min()
                                 .orElse(0);
 
-                        alternativeList.add(max);
-                        alternativeList.add(max);
+                        fillPairList(alternativeList, max);
+                        fillPairList(altList, min);
 
-                        altList.add(min);
-                        altList.add(min);
-
-                        joinedList = temporaryList.stream().map(String::valueOf).collect(Collectors.joining());
-                        jl1 = alternativeList.stream().map(String::valueOf).collect(Collectors.joining());
-                        jl2 = altList.stream().map(String::valueOf).collect(Collectors.joining());
+                        joinedList = getJoinedList(temporaryList);
+                        jl1 = getJoinedList(alternativeList);
+                        jl2 = getJoinedList(altList);
 
                         if (!player.getTryOut().containsKey(joinedList)) {
                             pairValue = diceCombinationOccurrences.entrySet()
@@ -182,21 +183,27 @@ public class App {
                                     .filter(e -> e.getValue() == 2)
                                     .map(Map.Entry::getKey)
                                     .reduce(0, Integer::sum);
-                            player.setCurrentScore(player.getCurrentScore() + pairValue * 2 + Combination.DOUBLE_PAIR.getCONSTANT());
+                            player.setCurrentScore(player.getCurrentScore() + pairValue * 2
+                                    + Combination.DOUBLE_PAIR.getCONSTANT());
                             combo = Combination.DOUBLE_PAIR.toString();
-                            player.getTryOut().put(joinedList, temporaryList);
+                            player.getTryOut()
+                                    .put(joinedList, temporaryList);
                         } else if (!player.getTryOut().containsKey(jl1)) {
                             pairValue = alternativeList.stream()
                                     .reduce(0, Integer::sum);
-                            player.setCurrentScore(player.getCurrentScore() + pairValue + Combination.PAIR.getCONSTANT());
+                            player.setCurrentScore(player.getCurrentScore() + pairValue
+                                    + Combination.PAIR.getCONSTANT());
                             combo = Combination.PAIR.toString();
-                            player.getTryOut().put(jl1, alternativeList);
+                            player.getTryOut()
+                                    .put(jl1, alternativeList);
                         } else if (!player.getTryOut().containsKey(jl2)) {
                             pairValue = altList.stream()
                                     .reduce(0, Integer::sum);
-                            player.setCurrentScore(player.getCurrentScore() + pairValue + Combination.PAIR.getCONSTANT());
+                            player.setCurrentScore(player.getCurrentScore() + pairValue
+                                    + Combination.PAIR.getCONSTANT());
                             combo = Combination.PAIR.toString();
-                            player.getTryOut().put(jl2, altList);
+                            player.getTryOut()
+                                    .put(jl2, altList);
                         } else {
                             combo = Combination.MISS.toString();
                         }
@@ -216,39 +223,36 @@ public class App {
                                 .map(Map.Entry::getKey)
                                 .reduce(0, Integer::sum);
 
-                        temporaryList.add(tripleValue);
-                        temporaryList.add(tripleValue);
-                        temporaryList.add(tripleValue);
-                        temporaryList.add(pairValue);
-                        temporaryList.add(pairValue);
+                        fillTripleList(alternativeList, tripleValue);
+                        fillPairList(altList, pairValue);
+                        fillFullHouseList(temporaryList, alternativeList, altList);
 
                         temporaryList = temporaryList.stream()
                                 .sorted()
                                 .collect(Collectors.toList());
 
-                        alternativeList.add(tripleValue);
-                        alternativeList.add(tripleValue);
-                        alternativeList.add(tripleValue);
-
-                        altList.add(pairValue);
-                        altList.add(pairValue);
-
-                        joinedList = temporaryList.stream().map(String::valueOf).collect(Collectors.joining());
-                        jl1 = alternativeList.stream().map(String::valueOf).collect(Collectors.joining());
-                        jl2 = altList.stream().map(String::valueOf).collect(Collectors.joining());
+                        joinedList = getJoinedList(temporaryList);
+                        jl1 = getJoinedList(alternativeList);
+                        jl2 = getJoinedList(altList);
 
                         if (!player.getTryOut().containsKey(joinedList)) {
-                            player.setCurrentScore(player.getCurrentScore() + (pairValue * 2) + (tripleValue * 3) + Combination.FULL_HOUSE.getCONSTANT());
+                            player.setCurrentScore(player.getCurrentScore() + (pairValue * 2)
+                                    + (tripleValue * 3) + Combination.FULL_HOUSE.getCONSTANT());
                             combo = Combination.FULL_HOUSE.toString();
-                            player.getTryOut().put(joinedList, temporaryList);
+                            player.getTryOut()
+                                    .put(joinedList, temporaryList);
                         } else if (!player.getTryOut().containsKey(jl1)) {
-                            player.setCurrentScore(player.getCurrentScore() + tripleValue * 3 + Combination.TRIPLE.getCONSTANT());
+                            player.setCurrentScore(player.getCurrentScore() + tripleValue * 3
+                                    + Combination.TRIPLE.getCONSTANT());
                             combo = Combination.TRIPLE.toString();
-                            player.getTryOut().put(jl1, alternativeList);
+                            player.getTryOut()
+                                    .put(jl1, alternativeList);
                         } else if (!player.getTryOut().containsKey(jl2)) {
-                            player.setCurrentScore(player.getCurrentScore() + pairValue * 2 + Combination.PAIR.getCONSTANT());
+                            player.setCurrentScore(player.getCurrentScore() + pairValue * 2
+                                    + Combination.PAIR.getCONSTANT());
                             combo = Combination.PAIR.toString();
-                            player.getTryOut().put(jl2, altList);
+                            player.getTryOut()
+                                    .put(jl2, altList);
                         } else {
                             combo = Combination.MISS.toString();
                         }
@@ -259,34 +263,32 @@ public class App {
                                 .map(Map.Entry::getKey)
                                 .reduce(0, Integer::sum);
 
-                        temporaryList.add(valueOfFourOfAKind);
-                        temporaryList.add(valueOfFourOfAKind);
-                        temporaryList.add(valueOfFourOfAKind);
-                        temporaryList.add(valueOfFourOfAKind);
+                        fillPairList(altList, valueOfFourOfAKind);
+                        fillTripleList(alternativeList, valueOfFourOfAKind);
+                        fillFourOfAKind(temporaryList, valueOfFourOfAKind);
 
-                        alternativeList.add(valueOfFourOfAKind);
-                        alternativeList.add(valueOfFourOfAKind);
-                        alternativeList.add(valueOfFourOfAKind);
-
-                        altList.add(valueOfFourOfAKind);
-                        altList.add(valueOfFourOfAKind);
-
-                        joinedList = temporaryList.stream().map(String::valueOf).collect(Collectors.joining());
-                        jl1 = alternativeList.stream().map(String::valueOf).collect(Collectors.joining());
-                        jl2 = altList.stream().map(String::valueOf).collect(Collectors.joining());
+                        joinedList = getJoinedList(temporaryList);
+                        jl1 = getJoinedList(alternativeList);
+                        jl2 = getJoinedList(altList);
 
                         if (!player.getTryOut().containsKey(joinedList)) {
-                            player.setCurrentScore(player.getCurrentScore() + valueOfFourOfAKind * 4 + Combination.FOUR_OF_A_KIND.getCONSTANT());
+                            player.setCurrentScore(player.getCurrentScore() + valueOfFourOfAKind * 4
+                                    + Combination.FOUR_OF_A_KIND.getCONSTANT());
                             combo = Combination.FOUR_OF_A_KIND.toString();
-                            player.getTryOut().put(joinedList, temporaryList);
+                            player.getTryOut()
+                                    .put(joinedList, temporaryList);
                         } else if (!player.getTryOut().containsKey(jl1)) {
-                            player.setCurrentScore(player.getCurrentScore() + valueOfFourOfAKind * 3 + Combination.TRIPLE.getCONSTANT());
+                            player.setCurrentScore(player.getCurrentScore() + valueOfFourOfAKind * 3
+                                    + Combination.TRIPLE.getCONSTANT());
                             combo = Combination.TRIPLE.toString();
-                            player.getTryOut().put(jl1, alternativeList);
+                            player.getTryOut()
+                                    .put(jl1, alternativeList);
                         } else if (!player.getTryOut().containsKey(jl2)) {
-                            player.setCurrentScore(player.getCurrentScore() + valueOfFourOfAKind * 2 + Combination.PAIR.getCONSTANT());
+                            player.setCurrentScore(player.getCurrentScore() + valueOfFourOfAKind * 2
+                                    + Combination.PAIR.getCONSTANT());
                             combo = Combination.PAIR.toString();
-                            player.getTryOut().put(jl2, altList);
+                            player.getTryOut()
+                                    .put(jl2, altList);
                         } else {
                             combo = Combination.MISS.toString();
                         }
@@ -299,15 +301,14 @@ public class App {
                             .map(Map.Entry::getKey)
                             .reduce(0, Integer::sum);
 
-                    player.setCurrentScore(player.getCurrentScore() + valueOfGenerala * 5 + Combination.GENERALA.getCONSTANT());
+                    player.setCurrentScore(player.getCurrentScore() + valueOfGenerala * 5
+                            + Combination.GENERALA.getCONSTANT());
                     combo = Combination.GENERALA.toString();
 
-                    System.out.println("current score: " + player.getCurrentScore());
                     System.out.println("dice roll: " + diceRolls + " -> " + combo);
                     System.out.println("new score: " + player.getCurrentScore());
 
-                    players.sort(Comparator.comparing(Player::getCurrentScore));
-                    players.forEach(e -> System.out.println("player " + player.getNumber() + "final score: " + player.getCurrentScore()));
+                    printFinalStats();
 
                     System.exit(0);
                     break;
@@ -319,5 +320,39 @@ public class App {
             alternativeList.clear();
             altList.clear();
         }
+    }
+
+    private void fillFourOfAKind(List<Integer> temporaryList, Integer pairValue) {
+        fillPairList(temporaryList, pairValue);
+        fillPairList(temporaryList, pairValue);
+    }
+
+    private void fillFullHouseList(List<Integer> dest, List<Integer> src1, List<Integer> src2) {
+        dest.addAll(src1);
+        dest.addAll(src2);
+    }
+
+    private void fillTripleList(List<Integer> temporaryList, Integer tripleValue) {
+        fillPairList(temporaryList, tripleValue);
+        temporaryList.add(tripleValue);
+    }
+
+    private void fillPairList(List<Integer> temporaryList, Integer pairValue) {
+        temporaryList.add(pairValue);
+        temporaryList.add(pairValue);
+    }
+
+    private void printFinalStats() {
+        players.sort(Comparator.comparing(Player::getCurrentScore).reversed());
+        players.forEach(e -> System.out.println("player " + e.getNumber()
+                + "- final score: " + e.getCurrentScore()));
+    }
+
+    private String getJoinedList(List<Integer> list) {
+        String joinedList;
+        joinedList = list.stream()
+                .map(String::valueOf)
+                .collect(Collectors.joining());
+        return joinedList;
     }
 }
